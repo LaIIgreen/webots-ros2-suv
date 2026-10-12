@@ -1,0 +1,6 @@
+docker/projects/
+**/__pycache__/
+**/*.pyc
+webots_ros2_suv/map-server/install/
+webots_ros2_suv/map-server/log/
+*.bag

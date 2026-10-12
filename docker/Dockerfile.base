@@ -1,0 +1,87 @@
+ARG BASE_IMAGE=osrf/ros:humble-desktop
+FROM $BASE_IMAGE
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG UID=1000
+
+RUN if id ubuntu >/dev/null 2>&1; then userdel -r ubuntu; fi && \
+    useradd -d /ulstu -m \
+        -u ${UID} -U \
+        -s /usr/bin/bash \
+        -G dialout \
+        -c "Ulstu Robotics" ulstu && \
+    echo "ulstu ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+        sudo \
+        git \
+        git-lfs \
+        curl \
+        wget \
+        vim \
+        ca-certificates \
+        python3-pip \
+        python3-opencv \
+        python3-vcstool \
+        libpcap-dev \
+        libglu1-mesa \
+        libegl1 \
+        libxkbcommon-x11-0 \
+        libxcb-keysyms1 \
+        libxcb-image0 \
+        libxcb-icccm4 \
+        libxcb-randr0 \
+        libxcb-render-util0 \
+        libxcb-xinerama0 \
+        libxcomposite1 \
+        libxtst6 \
+        libnss3 \
+        libxshmfence1 \
+        xvfb \
+        ffmpeg \
+        ros-humble-navigation2 \
+        ros-humble-nav2-bringup \
+        ros-humble-nav2-common \
+        ros-humble-rviz2 \
+        ros-humble-webots-ros2 \
+        ros-humble-robot-localization \
+        ros-humble-pcl-ros \
+        ros-humble-pcl-conversions \
+        ros-humble-pluginlib \
+        ros-humble-pointcloud-to-laserscan \
+        ros-humble-xacro \
+        ros-humble-rmw-cyclonedds-cpp \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL -o /tmp/webots.deb \
+        https://github.com/cyberbotics/webots/releases/download/R2023b/webots_2023b_amd64.deb && \
+    apt-get update && apt-get install -y /tmp/webots.deb && \
+    rm -f /tmp/webots.deb && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /ulstu/.config/Cyberbotics
+
+RUN curl -fsSL https://code-server.dev/install.sh | sh
+
+COPY webots_ros2_suv/requirements.txt /tmp/requirements.txt
+RUN pip3 install --no-cache-dir -r /tmp/requirements.txt && \
+    pip3 install --no-cache-dir "git+https://github.com/rdesc/pydubins.git" && \
+    rm -f /tmp/requirements.txt
+
+COPY docker/config/bashrc /tmp/bashrc
+COPY docker/config/vscode-server/config.yaml /ulstu/.config/code-server/config.yaml
+COPY docker/config/Cyberbotics/Webots-R2023b.conf /ulstu/.config/Cyberbotics/Webots-R2023b.conf
+COPY docker/config/setup.sh /usr/bin/setup.sh
+
+RUN chmod 755 /usr/bin/setup.sh && \
+    cat /tmp/bashrc >> /ulstu/.bashrc && \
+    rm -f /tmp/bashrc && \
+    mkdir -p /ulstu/repositories /ulstu/ros2_ws/src /ulstu/.host && \
+    chown -R ulstu:ulstu /ulstu && \
+    rosdep update --rosdistro humble
+
+USER ulstu
+WORKDIR /ulstu/ros2_ws
+
+EXPOSE 31415
+EXPOSE 8008
+EXPOSE 1234

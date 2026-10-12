@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+make allmac FLAVOR="hiber" ROBOT_PANEL_PORT=10001 VS_PORT=10002 WEBOTS_STREAM_PORT=10003
